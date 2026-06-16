@@ -42,22 +42,42 @@ def prix_sauts_discrets(S, K, T, r, sigma, lam, a, b, p,
     E_U1    = p * a + (1 - p) * b
     lam_a  = lam * p
     lam_b  = lam * (1 - p)
-
     # Facteur de correction du spot
     correction = exp(-lam * T * E_U1)
-
-    prix = 0.
+    prix = 0.0
 
     for k in range(N + 1):
         # Poids de Poisson(lambda_a * T) en k
         poids_k = exp(-lam_a * T) * (lam_a * T)**k / factorial(k)
-
         for m in range(N + 1):
             poids_m = exp(-lam_b * T) * (lam_b * T)**m / factorial(m)
             S_km = S * correction * (1 + a)**k * (1 + b)**m
-
             # Prix Black-Scholes avec ce spot modifie
             bs_km = black_scholes(S_km, K, T, r, sigma, option_type)
             prix += poids_k * poids_m * bs_km
+
+    return prix
+
+# partie 2 
+
+def prix_sauts_lognormaux(S, K, T, r, sigma, lam, m, sigma_J,
+                           option_type='call', N_trunc=50):
+    """
+    Prix d'une option europeenne avec sauts log-normaux. Params :
+    m       : moyenne de g (log du saut + 1)
+    sigma_J : ecart-type de g
+    """
+    # Esperance du saut (formule log-normale)
+    mu_J = exp(m + 0.5 * sigma_J**2) - 1
+    prix = 0.0
+
+    for n in range(N_trunc + 1):
+        poids_n = exp(-lam * T) * (lam * T)**n / factorial(n)
+        # Volatilite augmentee des sauts
+        sigma_n = sqrt(sigma**2 + n * sigma_J**2 / T)
+        # Taux modifie
+        r_n = r - lam * mu_J + n * m / T
+        bs_n = black_scholes(S, K, T, r_n, sigma_n, option_type)
+        prix += poids_n * bs_n
 
     return prix
