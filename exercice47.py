@@ -64,7 +64,7 @@ def prix_sauts_lognormaux(S, K, T, r, sigma, lam, m, sigma_J,
                            option_type='call', N=50):
     """
     Prix d'une option europeenne avec sauts log-normaux. Params :
-    m       : moyenne de g (log du saut + 1)
+    m : moyenne de g (log du saut + 1)
     sigma_J : ecart-type de g
     """
     # Esperance du saut (formule log-normale)
