@@ -29,7 +29,7 @@ def black_scholes(S, K, T, r, sigma, option_type='call'):
 def prix_sauts_discrets(S, K, T, r, sigma, lam, a, b, p,
                         option_type='call', N=30):
     """
-    Prix d'une option europeenne avecsauts a valeurs dans {a, b}. Params :
+    Prix d'une option europeenne avecsauts dans {a, b}. Params :
     S     : prix initial du sous-jacent
     K     : strike
     T     : maturite
@@ -61,7 +61,7 @@ def prix_sauts_discrets(S, K, T, r, sigma, lam, a, b, p,
 # partie 2 
 
 def prix_sauts_lognormaux(S, K, T, r, sigma, lam, m, sigma_J,
-                           option_type='call', N_trunc=50):
+                           option_type='call', N=50):
     """
     Prix d'une option europeenne avec sauts log-normaux. Params :
     m       : moyenne de g (log du saut + 1)
@@ -71,7 +71,7 @@ def prix_sauts_lognormaux(S, K, T, r, sigma, lam, m, sigma_J,
     mu_J = exp(m + 0.5 * sigma_J**2) - 1
     prix = 0.0
 
-    for n in range(N_trunc + 1):
+    for n in range(N + 1):
         poids_n = exp(-lam * T) * (lam * T)**n / factorial(n)
         # Volatilite augmentee des sauts
         sigma_n = sqrt(sigma**2 + n * sigma_J**2 / T)
@@ -81,3 +81,53 @@ def prix_sauts_lognormaux(S, K, T, r, sigma, lam, m, sigma_J,
         prix += poids_n * bs_n
 
     return prix
+
+
+
+# test des fonctions
+
+S = 100.0 # spot
+K = 100.0 # strike (at-the-money)
+T = 1.0 # maturite 1 an
+r = 0.05 # taux sans risque
+sigma = 0.20 # volatilite brownienne
+lam = 1.0 # en moyenne 1 saut par an
+
+# Bscholes sans sauts
+bs_call = black_scholes_call(S, K, T, r, sigma)
+bs_put  = black_scholes_put(S, K, T, r, sigma)
+print(f"\nBlack-Scholes de reference :")
+print(f"  Call ATM : {bs_call:.4f}")
+print(f"  Put  ATM : {bs_put:.4f}")
+
+# partie 1
+print("\nPARTIE 1 : Sauts discrets U_1 in {a, b}")
+
+a = 0.10
+b = -0.10
+p = 0.5   # equiprobable
+
+call_discret = prix_sauts_discrets(S, K, T, r, sigma, lam, a, b, p, option_type='call', N=50)
+put_discret  = prix_sauts_discrets(S, K, T, r, sigma, lam, a, b, p, option_type='put', N=50)
+
+print(f"\nParametres : a={a}, b={b}, p={p}, lambda={lam}")
+print(f"  E[U1] = {p*a + (1-p)*b:.4f}")
+print(f"  Call ATM : {call_discret:.4f}")
+print(f"  Put  ATM : {put_discret:.4f}")
+
+parite = S - K * exp(-r * T)
+print(f"  Parite call-put theorique C-P = {parite:.4f}")
+print(f"  Parite call-put obtenue   C-P = {call_discret - put_discret:.4f}")
+
+# Effet de l'intensite
+print("\nEffet de l'intensite lambda :")
+print(f"  {'lambda':>8} | {'Call':>10} | {'Put':>10}")
+print(f"  {'-'*8}-+-{'-'*10}-+-{'-'*10}")
+for l in [0.0, 0.5, 1.0, 2.0, 5.0]:
+    if l == 0.0:
+        c = bs_call
+        pu = bs_put
+    else:
+        c  = prix_sauts_discrets(S, K, T, r, sigma, l, a, b, p, option_type='call', N=25)
+        pu = prix_sauts_discrets(S, K, T, r, sigma, l, a, b, p, option_type='put',  N=25)
+    print(f"  {l:>8.1f} | {c:>10.4f} | {pu:>10.4f}")
